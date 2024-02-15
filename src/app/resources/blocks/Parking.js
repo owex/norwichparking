@@ -61,7 +61,7 @@ const Parking = (props) => {
                 Norwich Parking
               </h1>
             </div>
-            <div className="w-full">
+            <div className="w-full hidden">
               <label for="search" className="sr-only">
                 Search
               </label>
@@ -136,9 +136,6 @@ const Parking = (props) => {
                       </div>
                     </div>
                     <div>
-                      <span className="inline-flex flex-shrink-0 items-center rounded-full bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                        {location.percentageFull}%
-                      </span>
                       <span className="inline-flex flex-shrink-0 items-center rounded-full bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                         Status: {isClosed ? 'Closed' : 'Open'}
                       </span>
