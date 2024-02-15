@@ -1,12 +1,11 @@
-import Parking from './resources/blocks/Parking'
-import Footer from './resources/layout/Footer'
+import Parking from '@/resources/blocks/Parking'
+import DefaultLayout from '@/resources/layout/DefaultLayout'
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-5">
+    <DefaultLayout>
       <Parking />
-      <Footer />
-    </main>
+    </DefaultLayout>
   )
 }
 
@@ -15,4 +14,3 @@ export const metadata = {
   description:
     'Get an overview of live parking spaces in Norwich before you leave.',
 }
-

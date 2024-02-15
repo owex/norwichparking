@@ -1,27 +1,59 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { getProperty } from 'dot-prop'
-
-import Alert from '@/app/resources/components/Alert'
 import classNames from 'classnames'
+
+import Alert from '@/resources/components/Alert'
+import Button from '@/resources/components/Button'
 
 const Parking = (props) => {
   const [data, setData] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(
+    async (returnData = false) => {
+      const currentTime = new Date().getTime()
+      const oneMinute = 60 * 1000
+      const disableRefresh =
+        lastUpdated && currentTime - lastUpdated < oneMinute
+
+      if (disableRefresh) {
+        console.log('refresh disabled')
+        if (returnData) {
+          return data
+        }
+      }
+
       try {
         const response = await fetch('/api/v1/parking')
-        setData(await response.json())
+        const newData = await response.json()
+        setLastUpdated(new Date().getTime())
+        if (!returnData) {
+          setData(newData)
+        } else {
+          return newData
+        }
       } catch (error) {
         console.error('Error fetching', error)
       }
-    }
+    },
+    [lastUpdated]
+  )
 
+  useEffect(() => {
     fetchData()
   }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Refresh data every minute
+      fetchData()
+    }, 60000)
+
+    return () => clearInterval(interval)
+  }, [fetchData])
 
   const locations = useMemo(() => {
     return [...getProperty(data, 'locations', [])]
@@ -35,14 +67,33 @@ const Parking = (props) => {
       .sort((a, b) => a.spacesLeft - b.spacesLeft)
   }, [data])
 
+  const publicationTime = useMemo(() => {
+    const dateString = getProperty(data, 'publicationTime', '')
+    const date = new Date(dateString)
+    if (date.toString() !== 'Invalid Date') {
+      return date.toLocaleString()
+    }
+    return ''
+  }, [data])
+
+  const handleRefresh = async () => {
+    console.log('refreshing')
+    const newData = await fetchData(true)
+    setData(newData)
+    console.log('refreshing complete')
+  }
+
   return (
-    <div>
+    <div className="w-full">
       {/* <pre>{JSON.stringify(data, null, 2)}</pre> */}
       <div>
         <Alert>Do not use this service whilst operating a vehicle.</Alert>
         <div className="mb-5">
-          <div className="w-full mx-auto max-w-lg lg:max-w-xs">
-            <div className="flex items-center justify-center">
+          <div className="flex justify-between items-center w-full mx-auto">
+            <div className="w-full lg:w-1/3">
+              {publicationTime && <div>Last updated: {publicationTime}</div>}
+            </div>
+            <div className="flex items-center justify-center w-full lg:w-1/3">
               <div className="w-10 mr-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -53,7 +104,7 @@ const Parking = (props) => {
                     fill="#000"
                     fillRule="evenodd"
                     d="m13.98 27 7.517-10.35A4 4 0 0 1 24.734 15h20.06a4 4 0 0 1 3.709 2.5l3.845 9.5H54a8 8 0 0 1 8 8v5a4 4 0 0 1-4 4h-5.29a7.003 7.003 0 0 1-13.42 0H27.71a7.003 7.003 0 0 1-13.42 0H6a4 4 0 0 1-4-4v-5a8 8 0 0 1 8-8h3.98Zm.31 13a7.003 7.003 0 0 1 13.42 0h11.58a7.003 7.003 0 0 1 13.42 0H58v-5a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v5h8.29Zm33.743-13-3.238-8H24.734l-5.81 8h29.109ZM18 42a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm25 0a3 3 0 1 1 6 0 3 3 0 0 1-6 0Z"
-                    clip-rule="evenodd"
+                    clipRule="evenodd"
                   />
                 </svg>
               </div>
@@ -61,32 +112,35 @@ const Parking = (props) => {
                 Norwich Parking
               </h1>
             </div>
-            <div className="w-full hidden">
-              <label for="search" className="sr-only">
-                Search
-              </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <svg
-                    className="h-5 w-5 text-gray-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
-                      clip-rule="evenodd"
-                    ></path>
-                  </svg>
+            <div className="flex justify-end w-full lg:w-1/3">
+              <Button onClick={handleRefresh}>Refresh</Button>
+              <div className="w-full hidden">
+                <label htmlFor="search" className="sr-only">
+                  Search
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <svg
+                      className="h-5 w-5 text-gray-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                        clipRule="evenodd"
+                      ></path>
+                    </svg>
+                  </div>
+                  <input
+                    id="search"
+                    name="search"
+                    className="block w-full rounded-md border-0 bg-white py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-xl sm:leading-6"
+                    placeholder="Search"
+                    type="search"
+                  />
                 </div>
-                <input
-                  id="search"
-                  name="search"
-                  className="block w-full rounded-md border-0 bg-white py-3 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-xl sm:leading-6"
-                  placeholder="Search"
-                  type="search"
-                />
               </div>
             </div>
           </div>
@@ -124,7 +178,7 @@ const Parking = (props) => {
                           />
                           <path
                             className="circle stroke-current"
-                            stroke-dasharray={`${location.percentageFull}, 100`}
+                            strokeDasharray={`${location.percentageFull}, 100`}
                             d="M18 2.0845
           a 15.9155 15.9155 0 0 1 0 31.831
           a 15.9155 15.9155 0 0 1 0 -31.831"
