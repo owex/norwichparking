@@ -7,6 +7,42 @@ import classNames from 'classnames'
 
 import Alert from '@/resources/components/Alert'
 import Button from '@/resources/components/Button'
+import { sortByProximity } from '../utils/sort'
+import { timeAgo } from '../utils/datetime'
+import ButtonDropdown from '../components/ButtonDropdown'
+import {
+  BellAlertIcon,
+  ExclamationTriangleIcon,
+} from '@heroicons/react/20/solid'
+
+const getStatusColor = (percentage, isClosed) => {
+  if (isClosed) {
+    return {
+      text: 'text-blue-400',
+      bg: 'bg-blue-400',
+      shadow: 'shadow-blue-400',
+    }
+  }
+
+  if (percentage > 90) {
+    return {
+      text: 'text-red-400',
+      bg: 'bg-red-400',
+      shadow: 'shadow-red-400',
+    }
+  } else if (percentage > 75) {
+    return {
+      text: 'text-orange-400',
+      bg: 'bg-orange-400',
+      shadow: 'shadow-orange-400',
+    }
+  }
+  return {
+    text: 'text-green-400',
+    bg: 'bg-green-400',
+    shadow: 'shadow-green-400',
+  }
+}
 
 const Parking = (props) => {
   const [data, setData] = useState(null)
@@ -56,31 +92,31 @@ const Parking = (props) => {
   }, [fetchData])
 
   const locations = useMemo(() => {
-    return [...getProperty(data, 'locations', [])]
-      .map((item) => {
+    return sortByProximity(
+      [...getProperty(data, 'locations', [])].map((item) => {
         const isClosed = location.carParkStatus === 'carParkClosed'
         return {
           ...item,
           isClosed,
         }
-      })
-      .sort((a, b) => a.spacesLeft - b.spacesLeft)
+      }),
+      '52.628024',
+      '1.293119'
+    )
   }, [data])
 
   const publicationTime = useMemo(() => {
     const dateString = getProperty(data, 'publicationTime', '')
     const date = new Date(dateString)
     if (date.toString() !== 'Invalid Date') {
-      return date.toLocaleString()
+      return timeAgo(date.toISOString())
     }
     return ''
   }, [data])
 
   const handleRefresh = async () => {
-    console.log('refreshing')
     const newData = await fetchData(true)
     setData(newData)
-    console.log('refreshing complete')
   }
 
   return (
@@ -89,8 +125,8 @@ const Parking = (props) => {
       <div>
         <Alert>Do not use this service whilst operating a vehicle.</Alert>
         <div className="mb-5">
-          <div className="flex justify-between items-center w-full mx-auto">
-            <div className="w-full lg:w-1/3">
+          <div className="flex flex-col lg:flex-row lg:justify-between items-center w-full mx-auto py-5 lg:py-0">
+            <div className="w-full lg:w-1/3 text-center lg:text-left">
               {publicationTime && <div>Last updated: {publicationTime}</div>}
             </div>
             <div className="flex items-center justify-center w-full lg:w-1/3">
@@ -113,7 +149,11 @@ const Parking = (props) => {
               </h1>
             </div>
             <div className="flex justify-end w-full lg:w-1/3">
-              <Button onClick={handleRefresh}>Refresh</Button>
+              <div className="w-full lg:w-auto">
+                <Button onClick={handleRefresh} icon="refresh">
+                  Refresh
+                </Button>
+              </div>
               <div className="w-full hidden">
                 <label htmlFor="search" className="sr-only">
                   Search
@@ -151,47 +191,81 @@ const Parking = (props) => {
         >
           {locations.map((location) => {
             const isClosed = location.carParkStatus === 'carParkClosed'
+            const colors = getStatusColor(location.percentageFull, isClosed)
 
             return (
               <li
                 key={location.id}
                 className={classNames(
-                  'col-span-1 divide-y divide-gray-200 rounded-lg bg-white shadow',
+                  'relative col-span-1 divide-y divide-gray-200 rounded-lg bg-white shadow',
                   {
-                    'opacity-50': isClosed,
+                    [colors.shadow]: true,
                   }
                 )}
               >
+                {isClosed && (
+                  <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-gray-900/5 flex items-center justify-center bg-blue-50 bg-opacity-50 text-3xl">
+                    <span className="inline-flex items-center gap-x-1.5 rounded-md px-1.5 py-0.5 text-3xl font-medium text-gray-600">
+                      Closed
+                    </span>
+                  </div>
+                )}
                 <div className="flex w-full items-center justify-between space-x-6 p-6">
                   <div className="flex-1">
                     <div className="flex items-center justify-between space-x-3">
-                      <h3 className="truncate text-sm font-medium text-gray-900">
-                        {location.name}
-                      </h3>
-                      <div className="w-20">
-                        <svg viewBox="0 0 36 36" className="fill-none">
-                          <path
-                            className="circle-bg stroke-gray-200"
-                            d="M18 2.0845
+                      <div>
+                        <h3 className="truncate text-sm font-medium text-gray-900">
+                          {location.name}
+                        </h3>
+                        <address className="text-sm truncate text-gray-500">
+                          {location.address}
+                        </address>
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs font-medium text-gray-900">
+                          {location.timeAgo}
+                        </div>
+                        <div className="w-20">
+                          <svg
+                            viewBox="0 0 36 36"
+                            className={classNames('fill-none', {
+                              [colors.text]: true,
+                            })}
+                          >
+                            <path
+                              className="circle-bg stroke-current"
+                              d="M18 2.0845
           a 15.9155 15.9155 0 0 1 0 31.831
           a 15.9155 15.9155 0 0 1 0 -31.831"
-                          />
-                          <path
-                            className="circle stroke-current"
-                            strokeDasharray={`${location.percentageFull}, 100`}
-                            d="M18 2.0845
+                            />
+                            <path
+                              className="circle stroke-current"
+                              strokeDasharray={`${location.percentageFull}, 100`}
+                              d="M18 2.0845
           a 15.9155 15.9155 0 0 1 0 31.831
           a 15.9155 15.9155 0 0 1 0 -31.831"
-                          />
-                          <text x="18" y="20.35" className="percentage">
-                            {location.percentageFull}%
-                          </text>
-                        </svg>
+                            />
+                            <text x="18" y="20.35" className="percentage">
+                              {location.percentageFull}%
+                            </text>
+                          </svg>
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <span className="inline-flex flex-shrink-0 items-center rounded-full bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                    <div className="mt-1 flex items-center space-x-2">
+                      <span
+                        className={classNames(
+                          'inline-flex flex-shrink-0 items-center rounded-full px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset',
+                          {
+                            'bg-blue-50 ring-blue-600/20': isClosed,
+                            'bg-green-50 ring-green-600/20': !isClosed,
+                          }
+                        )}
+                      >
                         Status: {isClosed ? 'Closed' : 'Open'}
+                      </span>
+                      <span className="inline-flex flex-shrink-0 items-center rounded-full px-1.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
+                        Capacity {location.totalCapacity}
                       </span>
                     </div>
                   </div>
@@ -199,13 +273,18 @@ const Parking = (props) => {
                 <div>
                   <div className="-mt-px w-full flex divide-x divide-gray-200">
                     <div className="flex w-0 flex-1">
-                      <div className="relative -mr-px inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-4 text-sm font-semibold text-gray-900">
-                        Capacity: {location.totalCapacity}
+                      <div className="relative -mr-px inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-4 px-4 text-sm font-semibold text-gray-900">
+                        <ButtonDropdown items={location.mapUrls}>
+                          Directions
+                        </ButtonDropdown>
                       </div>
                     </div>
                     <div className="-ml-px flex w-0 flex-1">
-                      <div className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-br-lg border border-transparent py-4 text-sm font-semibold text-gray-900">
-                        Spaces Remaining: {location.spacesLeft}
+                      <div className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-br-lg border border-transparent py-4 font-semibold text-gray-900">
+                        <span className="text-xl font-bold">
+                          {location.spacesLeft}
+                        </span>
+                        <span className="text-xs">Spaces Left</span>
                       </div>
                     </div>
                   </div>

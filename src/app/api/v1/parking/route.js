@@ -1,5 +1,7 @@
 import xmljs from 'xml-js'
 import { getProperty } from 'dot-prop'
+import { extraLocationData } from '@/resources/data/locations'
+import { timeAgo } from '@/resources/utils/datetime'
 
 const getPropText = (prop) => {
   if (prop && prop._text) {
@@ -38,27 +40,31 @@ const locationData = {
     address: 'John Lewis,Ber Street, Norwich',
   },
   CPN0004: {
-    name: 'Castle Qtr',
-    address: 'Rose Lane/Market Av',
+    name: 'Castle Qtr Car Park 1',
+    address: 'Rose Lane/Market Avenue, Norwich, NR1 3JQ',
+    url: 'https://castlequarternorwich.co.uk/parking/',
   },
   CPN0005: {
-    name: 'Castle Qtr',
-    address: 'Farmers Avenue, Nor',
+    name: 'Castle Qtr Car Park 2',
+    address: 'Farmers Avenue, Norwich, NR1 3DD',
+    url: 'https://castlequarternorwich.co.uk/parking/',
   },
   CPN0006: {
     name: 'St. Giles',
     address: 'St. Giles Street, Norwich',
+    url: 'https://www.norwich.gov.uk/directory_record/850/st_giles_multi-storey_car_park_nr2_1jl/category/133/all_car_parks',
   },
   CPN0007: {
-    name: 'Rose Lane, Mountergate, Norwich',
+    name: 'Rose Lane Car Park',
     address: 'Rose Lane, Mountergate, Norwich',
+    url: 'https://www.norwich.gov.uk/directory_record/859/rose_lane_multi-storey_car_park_nr1_1py',
   },
   CPN0008: {
     name: 'St. Andrews',
     address: 'Duke St, Norwich',
   },
   CPN0009: {
-    name: 'Forum',
+    name: 'The Forum',
     address: 'Forum, Bethel Street, Norwich',
   },
   CPN0010: {
@@ -66,7 +72,7 @@ const locationData = {
     address: 'Riverside, Koblenz Ave, Norwich',
   },
   CPN0011: {
-    name: 'Airport, Buck Courtney Cresent',
+    name: 'Norwich Airport',
     address: 'Airport, Buck Courtney Cresent',
   },
   CPN0012: {
@@ -82,21 +88,45 @@ const locationData = {
     address: 'Costessey, Long Lane, Norwich',
   },
   CPN0015: {
-    name: 'Harford, Ipswich Road, Norwich',
+    name: 'Harford Park and Ride',
     address: 'Harford, Ipswich Road, Norwich',
   },
   CPN0016: {
-    name: 'ThickThorn, Norwich Road, Norwich',
+    name: 'ThickThorn',
     address: 'ThickThorn, Norwich Road, Norwich',
   },
   CPN0017: {
-    name: 'Chantry Place, Chapelfield Road',
+    name: 'Chantry Place Shopping Centre',
     address: 'Chantry Place, Chapelfield Road',
   },
-  CPN0018: {
-    name: '',
-    address: '',
+  C06391: {
+    name: 'B&Q Car Park',
+    address: 'B&Q Car Park, Boundary Road',
   },
+}
+
+function generateMapUrls(lat, lon) {
+  const wazeUrl = `https://www.waze.com/ul?ll=${lat}%2C${lon}&z=17`
+  const bingUrl = `http://bing.com/maps/default.aspx?rtp=~pos.${lat}_${lon}`
+  const googleUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`
+
+  return [
+    {
+      label: 'Waze',
+      href: wazeUrl,
+      target: '_blank',
+    },
+    {
+      label: 'Bing',
+      href: bingUrl,
+      target: '_blank',
+    },
+    {
+      label: 'Google',
+      href: googleUrl,
+      target: '_blank',
+    },
+  ]
 }
 
 const transformer = (locations) => {
@@ -105,6 +135,12 @@ const transformer = (locations) => {
     const id = getProperty(location, '_attributes.id', '')
 
     const bodyInfo = getProperty(location, 'd2lm:situationRecord', {})
+
+    const lonLat = getProperty(
+      bodyInfo,
+      'd2lm:groupOfLocations.d2lm:locationContainedInGroup.d2lm:pointByCoordinates.d2lm:pointCoordinates',
+      {}
+    )
 
     const newObject = {}
     Object.keys(bodyInfo)
@@ -117,12 +153,23 @@ const transformer = (locations) => {
         newObject[newKey] = getPropText(bodyInfo[key])
       })
 
+    const additionalData =
+      extraLocationData.find((data) => data.id === id) || {}
+
+    const lon = getPropText(lonLat['d2lm:longitude'])
+    const lat = getPropText(lonLat['d2lm:latitude'])
+
     return {
       id,
+      mapUrls: generateMapUrls(lat, lon),
       ...(locationData[id] || {}),
       ...newObject,
       carParkIdentity: newObject.carParkIdentity.replace(`:${id}`, ''),
       ...extractCarParkInfo(newObject),
+      ...additionalData,
+      lon,
+      lat,
+      timeAgo: timeAgo(newObject.locationCreationTime),
     }
   })
 }
