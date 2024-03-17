@@ -16,20 +16,7 @@
   }
 }
 
-.circular-chart.orange .circle {
-  stroke: #ff9f00;
-}
-
-.circular-chart.green .circle {
-  stroke: #4CC790;
-}
-
-.circular-chart.blue .circle {
-  stroke: #3c9ee5;
-}
-
 .percentage {
-  fill: #666;
   font-family: sans-serif;
   font-size: 0.5em;
   text-anchor: middle;

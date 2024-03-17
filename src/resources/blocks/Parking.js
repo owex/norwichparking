@@ -3,14 +3,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import PropTypes from 'prop-types'
 import { getProperty } from 'dot-prop'
-import classNames from 'classnames'
 
+import { sortByProximity } from '@/resources/utils/sort'
+import { timeAgo } from '@/resources/utils/datetime'
+import { useLocalStorage } from '@/resources/utils/hooks'
 import Alert from '@/resources/components/Alert'
 import Button from '@/resources/components/Button'
-import { sortByProximity } from '../utils/sort'
-import { timeAgo } from '../utils/datetime'
-import ButtonDropdown from '../components/ButtonDropdown'
-import BuyMeACoffee from '../components/BuyMeACoffee'
+import BuyMeACoffee from '@/resources/components/BuyMeACoffee'
+import Location from '@/resources/components/Location'
+import Select from '@/resources/components/Select'
 
 const getStatusColor = (percentage, isClosed) => {
   if (isClosed) {
@@ -44,6 +45,28 @@ const getStatusColor = (percentage, isClosed) => {
 const Parking = (props) => {
   const [data, setData] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
+  const [filterBy, setFilterBy] = useLocalStorage('filterBy', 'all')
+  const [favorites, setFavorites] = useState([])
+
+  useEffect(() => {
+    const getAllFavorites = () => {
+      const favs = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key.startsWith('favorite-')) {
+          const id = key.replace('favorite-', '')
+          const item = localStorage.getItem(key)
+          if (item === 'true') {
+            favs.push(id)
+          }
+        }
+      }
+      return favs
+    }
+
+    const favoritesFromLocalStorage = getAllFavorites()
+    setFavorites(favoritesFromLocalStorage)
+  }, [])
 
   const fetchData = useCallback(
     async (returnData = false) => {
@@ -89,18 +112,32 @@ const Parking = (props) => {
   }, [fetchData])
 
   const locations = useMemo(() => {
-    return sortByProximity(
-      [...getProperty(data, 'locations', [])].map((item) => {
-        const isClosed = location.carParkStatus === 'carParkClosed'
-        return {
-          ...item,
-          isClosed,
-        }
-      }),
-      '52.628024',
-      '1.293119'
-    )
-  }, [data])
+    return [
+      ...sortByProximity(
+        [...getProperty(data, 'locations', [])].map((item) => {
+          const isClosed = location.carParkStatus === 'carParkClosed'
+          return {
+            ...item,
+            isClosed,
+          }
+        }),
+        '52.628024',
+        '1.293119'
+      ),
+    ].filter((location) => {
+      const isClosed = location.carParkStatus === 'carParkClosed'
+      if (
+        filterBy === 'all' ||
+        (filterBy === 'open' && !isClosed) ||
+        (filterBy === 'closed' && isClosed) ||
+        (filterBy === 'favorite' && favorites.includes(location.id))
+      ) {
+        return true
+      }
+
+      return false
+    })
+  }, [data, filterBy, favorites])
 
   const publicationTime = useMemo(() => {
     const dateString = getProperty(data, 'publicationTime', '')
@@ -116,43 +153,63 @@ const Parking = (props) => {
     setData(newData)
   }
 
+  const handleFavoriteChange = ({ id, isFavorite }) => {
+    if (isFavorite === true) {
+      setFavorites([...favorites, id])
+    } else {
+      setFavorites([...favorites.filter((f) => f !== id)])
+    }
+  }
+
   return (
     <>
       <BuyMeACoffee />
       <div className="w-full">
         <div>
-          <Alert>Do not use this service whilst operating a vehicle.</Alert>
+          <Alert fixed>
+            Do not use this service whilst operating a vehicle.
+          </Alert>
           <div className="mb-5">
             <div className="flex flex-col lg:flex-row lg:justify-between items-center w-full mx-auto py-5 lg:py-0">
-              <div className="w-full lg:w-1/3 text-center lg:text-left">
-                {publicationTime && <div>Last updated: {publicationTime}</div>}
-              </div>
+              <div className="w-full lg:w-1/3 text-center lg:text-left"></div>
               <div className="flex items-center justify-center w-full lg:w-1/3">
-                <div className="w-10 mr-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 64 64"
-                  >
-                    <path
-                      fill="#000"
-                      fillRule="evenodd"
-                      d="m13.98 27 7.517-10.35A4 4 0 0 1 24.734 15h20.06a4 4 0 0 1 3.709 2.5l3.845 9.5H54a8 8 0 0 1 8 8v5a4 4 0 0 1-4 4h-5.29a7.003 7.003 0 0 1-13.42 0H27.71a7.003 7.003 0 0 1-13.42 0H6a4 4 0 0 1-4-4v-5a8 8 0 0 1 8-8h3.98Zm.31 13a7.003 7.003 0 0 1 13.42 0h11.58a7.003 7.003 0 0 1 13.42 0H58v-5a4 4 0 0 0-4-4H10a4 4 0 0 0-4 4v5h8.29Zm33.743-13-3.238-8H24.734l-5.81 8h29.109ZM18 42a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm25 0a3 3 0 1 1 6 0 3 3 0 0 1-6 0Z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
+                <div className="mr-2"></div>
+                <div className="flex flex-col items-center justify-center my-2">
+                  <h1 className="mb-2 text-3xl font-bold text-center">
+                    Norwich Parking
+                  </h1>
+                  <p>
+                    Get the latest live parking information for the Norwich
+                    area.
+                  </p>
                 </div>
-                <h1 className="my-5 text-3xl font-bold text-center">
-                  Norwich Parking
-                </h1>
               </div>
               <div className="flex justify-end w-full lg:w-1/3">
                 <div className="w-full lg:w-auto">
-                  <div className="flex space-x-5">
-                    <div>
-                      <Button onClick={handleRefresh} icon="refresh">
-                        Refresh
-                      </Button>
+                  {publicationTime && (
+                    <div className="mb-2 text-right text-xs">
+                      Last updated: {publicationTime}
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-5">
+                    <Select
+                      name="orderby"
+                      label="Filter by"
+                      value={filterBy}
+                      onChange={(option) => setFilterBy(option.value)}
+                      options={[
+                        { label: 'All', value: 'all' },
+                        { label: 'Open', value: 'open' },
+                        { label: 'Closed', value: 'closed' },
+                        { label: 'Favorite', value: 'favorite' },
+                      ]}
+                    />
+                    <div className="flex justify-end space-x-5">
+                      <div>
+                        <Button onClick={handleRefresh} icon="refresh">
+                          Refresh
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -213,111 +270,19 @@ const Parking = (props) => {
                 Loading Parking Data...
               </div>
             )}
-            <ul
-              role="list"
-              className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-            >
+            <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {locations.map((location) => {
                 const isClosed = location.carParkStatus === 'carParkClosed'
                 const colors = getStatusColor(location.percentageFull, isClosed)
 
                 return (
-                  <li
+                  <Location
                     key={location.id}
-                    className={classNames(
-                      'relative col-span-1 divide-y divide-gray-200 rounded-lg bg-white shadow',
-                      {
-                        [colors.shadow]: true,
-                      }
-                    )}
-                  >
-                    {isClosed && (
-                      <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-gray-900/5 flex items-center justify-center bg-blue-50 bg-opacity-50 text-3xl">
-                        <span className="inline-flex items-center gap-x-1.5 rounded-md px-1.5 py-0.5 text-3xl font-medium text-gray-600">
-                          Closed
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex w-full items-center justify-between space-x-6 p-6">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between space-x-3">
-                          <div>
-                            <h3 className="truncate text-sm font-medium text-gray-900">
-                              {location.name}
-                            </h3>
-                            <address className="text-sm truncate text-gray-500">
-                              {location.address}
-                            </address>
-                          </div>
-                          <div>
-                            <div className="mb-1 text-xs font-medium text-gray-900">
-                              {location.timeAgo}
-                            </div>
-                            <div className="w-20">
-                              <svg
-                                viewBox="0 0 36 36"
-                                className={classNames('fill-none', {
-                                  [colors.text]: true,
-                                })}
-                              >
-                                <path
-                                  className="circle-bg stroke-current"
-                                  d="M18 2.0845
-              a 15.9155 15.9155 0 0 1 0 31.831
-              a 15.9155 15.9155 0 0 1 0 -31.831"
-                                />
-                                <path
-                                  className="circle stroke-current"
-                                  strokeDasharray={`${location.percentageFull}, 100`}
-                                  d="M18 2.0845
-              a 15.9155 15.9155 0 0 1 0 31.831
-              a 15.9155 15.9155 0 0 1 0 -31.831"
-                                />
-                                <text x="18" y="20.35" className="percentage">
-                                  {location.percentageFull}%
-                                </text>
-                              </svg>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-1 flex items-center space-x-2">
-                          <span
-                            className={classNames(
-                              'inline-flex flex-shrink-0 items-center rounded-full px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset',
-                              {
-                                'bg-blue-50 ring-blue-600/20': isClosed,
-                                'bg-green-50 ring-green-600/20': !isClosed,
-                              }
-                            )}
-                          >
-                            Status: {isClosed ? 'Closed' : 'Open'}
-                          </span>
-                          <span className="inline-flex flex-shrink-0 items-center rounded-full px-1.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
-                            Capacity {location.totalCapacity}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="-mt-px w-full flex divide-x divide-gray-200">
-                        <div className="flex w-0 flex-1">
-                          <div className="relative -mr-px inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-4 px-4 text-sm font-semibold text-gray-900">
-                            <ButtonDropdown items={location.mapUrls}>
-                              Directions
-                            </ButtonDropdown>
-                          </div>
-                        </div>
-                        <div className="-ml-px flex w-0 flex-1">
-                          <div className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-3 rounded-br-lg border border-transparent py-4 font-semibold text-gray-900">
-                            <span className="text-xl font-bold">
-                              {location.spacesLeft}
-                            </span>
-                            <span className="text-xs">Spaces Left</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
+                    location={location}
+                    colors={colors}
+                    isClosed={isClosed}
+                    onFavorite={handleFavoriteChange}
+                  />
                 )
               })}
             </ul>

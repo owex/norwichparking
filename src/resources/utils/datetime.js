@@ -21,6 +21,3 @@ export function timeAgo(timestamp) {
     return `${Math.floor(minutes / 1440)} days ago`
   }
 }
-
-const timestamp = '2024-02-17T19:16:09'
-console.log(timeAgo(timestamp))

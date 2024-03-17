@@ -1,13 +1,14 @@
 import { XCircleIcon } from '@heroicons/react/20/solid'
 import classNames from 'classnames'
 
-export default function Alert({ children, type = 'error' }) {
+export default function Alert({ children, type = 'error', fixed = false }) {
   return (
     <div
       className={classNames('rounded-md p-4', {
         'bg-red-50': type === 'error',
         'bg-yellow-50': type === 'warning',
         'bg-green-50': type === 'success',
+        'fixed bottom-0 left-0 w-full': fixed,
       })}
     >
       <div className="flex">

@@ -4,7 +4,7 @@ import { ChevronDownIcon } from '@heroicons/react/20/solid'
 import classNames from 'classnames'
 import PropTypes from 'prop-types'
 
-const ButtonDropdown = ({ items, children }) => {
+const ButtonDropdown = ({ id, items, children }) => {
   return (
     <Menu as="div" className="relative inline-block text-left w-full">
       <div>
@@ -30,7 +30,7 @@ const ButtonDropdown = ({ items, children }) => {
           <div className="py-1">
             {items &&
               items.map((item) => (
-                <Menu.Item>
+                <Menu.Item key={`id-${id}-${item.label}`}>
                   {({ active }) => (
                     <a
                       href={item.href}
