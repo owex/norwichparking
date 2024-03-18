@@ -8,7 +8,7 @@ export default function Alert({ children, type = 'error', fixed = false }) {
         'bg-red-50': type === 'error',
         'bg-yellow-50': type === 'warning',
         'bg-green-50': type === 'success',
-        'fixed bottom-0 left-0 w-full': fixed,
+        'fixed bottom-0 left-0 z-50 w-full': fixed,
       })}
     >
       <div className="flex">

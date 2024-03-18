@@ -6,7 +6,13 @@ import { ClockIcon, MapPinIcon, StarIcon } from '@heroicons/react/20/solid'
 import { useLocalStorage } from '@/resources/utils/hooks'
 import ButtonDropdown from '@/resources/components/ButtonDropdown'
 
-const Location = ({ location, colors, isClosed, onFavorite }) => {
+const Location = ({
+  location,
+  colors,
+  isClosed,
+  onFavorite,
+  usingUserLocation = false,
+}) => {
   const percentage = isClosed ? 100 : location.percentageFull
   const color = isClosed ? '#ccc' : colors.text
   const [isFavorite, setFavorite] = useLocalStorage(
@@ -60,6 +66,14 @@ const Location = ({ location, colors, isClosed, onFavorite }) => {
               <address className="text-sm truncate text-gray-500 break-words">
                 {location.address}
               </address>
+              <div className="text-sm truncate text-gray-500 mt-2">
+                {location.distanceFromCenter} from center
+              </div>
+              {usingUserLocation && (
+                <div className="text-sm truncate text-gray-500">
+                  {location.distanceFromYou} from your location
+                </div>
+              )}
             </div>
           </div>
           <div className="flex flex-col items-end w-1/3 lg:w-auto">
@@ -105,7 +119,7 @@ a 15.9155 15.9155 0 0 1 0 -31.831"
             </div>
           </div>
         </div>
-        <div className="mt-1 flex items-center w-full">
+        <div className="mt-1 flex items-center gap-x-2 w-full">
           <span
             className={classNames(
               'inline-flex flex-shrink-0 items-center rounded-full px-1.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset',

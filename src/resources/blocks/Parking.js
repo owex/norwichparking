@@ -12,6 +12,7 @@ import Button from '@/resources/components/Button'
 import BuyMeACoffee from '@/resources/components/BuyMeACoffee'
 import Location from '@/resources/components/Location'
 import Select from '@/resources/components/Select'
+import { centerPoint, getDistanceFromCenter } from '../utils/distance'
 
 const getStatusColor = (percentage, isClosed) => {
   if (isClosed) {
@@ -47,6 +48,29 @@ const Parking = (props) => {
   const [lastUpdated, setLastUpdated] = useState(null)
   const [filterBy, setFilterBy] = useLocalStorage('filterBy', 'all')
   const [favorites, setFavorites] = useState([])
+  const defaultLonLat = centerPoint
+  const [latitude, setLatitude] = useState(defaultLonLat?.lat)
+  const [longitude, setLongitude] = useState(defaultLonLat?.lon)
+  const [usingUserLocation, setUsingUserLocation] = useState(false)
+
+  useEffect(() => {
+    const getLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setLatitude(position.coords.latitude)
+            setLongitude(position.coords.longitude)
+            setUsingUserLocation(true)
+          },
+          (error) => {
+            console.log('Defaulting to Norwich City Centre')
+          }
+        )
+      }
+    }
+
+    getLocation()
+  }, [])
 
   useEffect(() => {
     const getAllFavorites = () => {
@@ -116,27 +140,38 @@ const Parking = (props) => {
       ...sortByProximity(
         [...getProperty(data, 'locations', [])].map((item) => {
           const isClosed = location.carParkStatus === 'carParkClosed'
+          console.log('item', item)
           return {
             ...item,
             isClosed,
+            distanceFromYou: getDistanceFromCenter(
+              {
+                lat: item.lat,
+                lon: item.lon,
+              },
+              latitude,
+              longitude
+            ),
           }
         }),
-        '52.628024',
-        '1.293119'
+        latitude,
+        longitude
       ),
-    ].filter((location) => {
-      const isClosed = location.carParkStatus === 'carParkClosed'
-      if (
-        filterBy === 'all' ||
-        (filterBy === 'open' && !isClosed) ||
-        (filterBy === 'closed' && isClosed) ||
-        (filterBy === 'favorite' && favorites.includes(location.id))
-      ) {
-        return true
-      }
+    ]
+      .filter((location) => {
+        const isClosed = location.carParkStatus === 'carParkClosed'
+        if (
+          filterBy === 'all' ||
+          (filterBy === 'open' && !isClosed) ||
+          (filterBy === 'closed' && isClosed) ||
+          (filterBy === 'favorite' && favorites.includes(location.id))
+        ) {
+          return true
+        }
 
-      return false
-    })
+        return false
+      })
+      .sort((a, b) => favorites.includes(b.id) - favorites.includes(a.id))
   }, [data, filterBy, favorites])
 
   const publicationTime = useMemo(() => {
@@ -286,6 +321,7 @@ const Parking = (props) => {
                     location={location}
                     colors={colors}
                     isClosed={isClosed}
+                    usingUserLocation={usingUserLocation}
                     onFavorite={handleFavoriteChange}
                   />
                 )

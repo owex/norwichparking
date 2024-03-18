@@ -2,6 +2,7 @@ import xmljs from 'xml-js'
 import { getProperty } from 'dot-prop'
 import { extraLocationData } from '@/resources/data/locations'
 import { timeAgo } from '@/resources/utils/datetime'
+import { centerPoint, getDistanceFromCenter } from '@/resources/utils/distance'
 
 const getPropText = (prop) => {
   if (prop && prop._text) {
@@ -170,6 +171,7 @@ const transformer = (locations) => {
       lon,
       lat,
       timeAgo: timeAgo(newObject.locationCreationTime),
+      distanceFromCenter: getDistanceFromCenter(centerPoint, lat, lon),
     }
   })
 }
