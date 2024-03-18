@@ -270,6 +270,11 @@ const Parking = (props) => {
                 Loading Parking Data...
               </div>
             )}
+            {locations.length === 0 && (
+              <div className="flex flex-col justify-center items-center gap-y-5 py-10 lg:py-40">
+                <p>No parking locations found</p>
+              </div>
+            )}
             <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {locations.map((location) => {
                 const isClosed = location.carParkStatus === 'carParkClosed'
