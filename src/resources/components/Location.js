@@ -46,7 +46,7 @@ const Location = ({
       )}
       <div className="flex flex-col w-full items-center justify-between space-x-6 p-4">
         <div className="flex items-start justify-between space-x-3 w-full">
-          <div className="flex w-2/3">
+          <div className="flex w-1/2 lg:w-2/3">
             <button
               onClick={handleSetFavorite}
               className={classNames('w-6 h-6', {
@@ -59,24 +59,24 @@ const Location = ({
                 aria-hidden="true"
               />
             </button>
-            <div className="ml-2">
+            <div className="w-full ml-2">
               <h3 className="truncate text-md font-bold text-gray-900">
                 {location.name}
               </h3>
-              <address className="text-sm truncate text-gray-500 break-words">
+              <address className="text-sm text-gray-500 break-words">
                 {location.address}
               </address>
-              <div className="text-sm truncate text-gray-500 mt-2">
-                {location.distanceFromCenter} from center
+              <div className="text-xs truncate text-gray-500 mt-2">
+                {location.distanceFromCenter} from city center
               </div>
               {usingUserLocation && (
-                <div className="text-sm truncate text-gray-500">
+                <div className="text-xs truncate text-gray-500">
                   {location.distanceFromYou} from your location
                 </div>
               )}
             </div>
           </div>
-          <div className="flex flex-col items-end w-1/3 lg:w-auto">
+          <div className="flex flex-col items-end w-1/2 lg:w-1/3 lg:w-auto">
             <div className="flex items-center gap-x-1 mb-1 text-xs font-medium text-gray-900">
               <div className="w-4 h-4 inline-block">
                 <ClockIcon />

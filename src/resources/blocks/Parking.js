@@ -226,7 +226,7 @@ const Parking = (props) => {
                       Last updated: {publicationTime}
                     </div>
                   )}
-                  <div className="flex items-center space-x-5">
+                  <div className="flex items-end justify-between gap-x-5">
                     <Select
                       name="orderby"
                       label="Filter by"
