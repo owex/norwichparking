@@ -139,7 +139,6 @@ const Parking = (props) => {
       ...sortByProximity(
         [...getProperty(data, 'locations', [])].map((item) => {
           const isClosed = location.carParkStatus === 'carParkClosed'
-          console.log('item', item)
           return {
             ...item,
             isClosed,
