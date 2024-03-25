@@ -100,7 +100,6 @@ const Parking = (props) => {
         lastUpdated && currentTime - lastUpdated < oneMinute
 
       if (disableRefresh) {
-        console.log('refresh disabled')
         if (returnData) {
           return data
         }
@@ -241,8 +240,11 @@ const Parking = (props) => {
                     />
                     <div className="flex justify-end space-x-5">
                       <div>
-                        <Button onClick={handleRefresh} icon="refresh">
-                          Refresh
+                        <Button
+                          onClick={() => window.location.reload()}
+                          icon="refresh"
+                        >
+                          Reload
                         </Button>
                       </div>
                     </div>
